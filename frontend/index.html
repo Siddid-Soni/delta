@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .form-container {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            width: 300px;
+            float: left;
+        }
+
+        .cart-container {
+            clear: both;
+            margin-top: 20px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .remove-button {
+            cursor: pointer;
+            margin-left: 20px;
+        }
+    </style>
+    <title>Laptop Store</title>
+</head>
+<body>
+    <h1>Products</h1>
+    
+    <div id="dynamic-forms-container"></div>
+
+    <div class="cart-container">
+        <h2>Cart Items: </h2>
+        <ul id="cart-items"></ul>
+        <p>Cart Total: <span id="cart-total">0</span></p>
+    </div>
+
+    <script>
+
+        const cart = [];
+
+        function createForms(data) {
+            const formContainer = document.createElement('div');
+            formContainer.classList.add('form-container');
+
+            const form = document.createElement('form');
+
+            const modelHeading = document.createElement('h2');
+            modelHeading.textContent = `${data.model}`;
+            form.appendChild(modelHeading);
+
+            const basePriceLabel = document.createElement('p');
+            basePriceLabel.textContent = `Base Price: ${data.basePrice}`;
+            form.appendChild(basePriceLabel);
+
+            const ramFieldset = document.createElement('fieldset');
+            ramFieldset.innerHTML = '<legend>Select RAM:</legend>';
+
+            data.RAM.forEach((ramOption, index) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `ram_${data.id}`;
+                radio.value = ramOption.size;
+
+                if (index === 0) {
+                    radio.checked = true;
+                }
+
+                const label = document.createElement('label');
+                label.textContent = `${ramOption.size} - ${ramOption.price}`;
+
+                ramFieldset.appendChild(radio);
+                ramFieldset.appendChild(label);
+                ramFieldset.appendChild(document.createElement('br'));
+            });
+
+            const storageFieldset = document.createElement('fieldset');
+            storageFieldset.innerHTML = '<legend>Select Storage:</legend>';
+
+            data.storage.forEach((storageOption, index) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `storage_${data.id}`;
+                radio.value = `${storageOption.type} ${storageOption.size}`;
+
+                if (index === 0) {
+                    radio.checked = true;
+                }
+
+                const label = document.createElement('label');
+                label.textContent = `${storageOption.type} ${storageOption.size} - ${storageOption.price}`;
+
+                storageFieldset.appendChild(radio);
+                storageFieldset.appendChild(label);
+                storageFieldset.appendChild(document.createElement('br'));
+            });
+
+            const addToCartButton = document.createElement('button');
+            addToCartButton.type = 'button';
+            addToCartButton.textContent = 'Add to Cart';
+
+            addToCartButton.addEventListener('click', () => {
+                const selectedRAM = form.querySelector('input[name^="ram"]:checked').value;
+                const selectedStorage = form.querySelector('input[name^="storage"]:checked').value;
+                const totalPrice = data.basePrice +
+                    data.RAM.find((ram) => ram.size === selectedRAM).price +
+                    data.storage.find((storage) => `${storage.type} ${storage.size}` === selectedStorage).price;
+
+                const item = {
+                    model: data.model,
+                    ram: selectedRAM,
+                    storage: selectedStorage,
+                    price: totalPrice,
+                };
+                cart.push(item);
+
+                updateCartDisplay();
+            });
+
+            form.appendChild(ramFieldset);
+            form.appendChild(storageFieldset);
+            form.appendChild(addToCartButton);
+
+            formContainer.appendChild(form);
+
+            const dynamicFormsContainer = document.getElementById('dynamic-forms-container');
+            dynamicFormsContainer.appendChild(formContainer);
+        }
+
+        function updateCartDisplay() {
+            const cartItemsList = document.getElementById('cart-items');
+            const cartTotal = document.getElementById('cart-total');
+
+            cartItemsList.innerHTML = '';
+
+            cart.forEach((item, index) => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('cart-item');
+
+                const itemInfo = document.createElement('div');
+                itemInfo.textContent = `${item.model} - RAM: ${item.ram}, Storage: ${item.storage}, Price: ${item.price}`;
+
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'Remove from cart';
+                removeButton.classList.add('remove-button');
+
+                removeButton.addEventListener('click', () => {
+                    cart.splice(index, 1);
+                    updateCartDisplay();
+                });
+
+                listItem.appendChild(itemInfo);
+                listItem.appendChild(removeButton);
+
+                cartItemsList.appendChild(listItem);
+            });
+
+            const total = cart.reduce((acc, item) => acc + item.price, 0);
+            cartTotal.textContent = total;
+        }
+
+        fetch('https://snucdelta.tech/api/inductions/get-products')
+            .then(response => response.json())
+            .then(data => 
+                // Process the data and create forms
+                data.laptops.forEach(product => {
+                    createForms(product);
+                })
+            )
+            .catch(error => {
+                console.error('Error fetching data:', error);
+            });
+
+
+    </script>
+</body>
+</html>
